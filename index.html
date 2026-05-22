@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Math.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjs@11/lib/browser/math.js"></script>
+    <!-- KaTeX CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.15.3/dist/katex.min.css">
+    <!-- MathLive -->
+    <script src="https://unpkg.com/mathlive"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Excel.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=VT323&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+
+
+    <!-- Nerdamer -->
+    <script src="./libs/nerdamer.core.js"></script>
+    <script src="./libs/Algebra.js"></script>
+
+    <!-- App Styles -->
+    <link rel="stylesheet" href="WebStyle.css">
+    <link rel="icon" type="image/png" href="WToMath.png">
+
+    <title>WToMath - Dashboard</title>
+</head>
+<body class="theme-modern">
+    <canvas id="space-bg"></canvas>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="WToMath.png" alt="WToMath Logo" class="logo-large">
+            </div>
+
+            <div class="theme-switcher">
+                <label for="themeSelect"><i class="fa-solid fa-palette"></i> Tema Visual</label>
+                <select id="themeSelect" class="styled-select">
+                    <option value="modern">Moderno</option>
+                    <option value="retro">Retro CRT</option>
+                    <option value="space">Espacio Exterior</option>
+                </select>
+            </div>
+
+            <ul class="nav-menu">
+                <li class="nav-section" style="color:var(--primary-color);">Herramientas Avanzadas</li>
+                <li><a href="#" id="btnSmartAnalyzer" class="nav-link" draggable="false" data-method="Analizador Inteligente"><i class="fa-solid fa-brain"></i> Analizador de Ecuaciones</a></li>
+                <li><a href="#" id="btnSmartSystemAnalyzer" class="nav-link" draggable="false" data-method="Analizador de Sistemas"><i class="fa-solid fa-cubes"></i> Analizador de Sistemas</a></li>
+
+                <li class="nav-section mt-4">Series y Aproximaciones</li>
+                <li><a href="#" id="btnPreviewTaylor" class="nav-link" draggable="true" data-method="Taylor"><i class="fa-solid fa-square-root-variable"></i> Taylor</a></li>
+
+                <li class="nav-section mt-4">Métodos Cerrados</li>
+                <li><a href="#" id="btnPreviewBisection" class="nav-link" draggable="true" data-method="Bisección"><i class="fa-solid fa-scissors"></i> Bisección</a></li>
+                <li><a href="#" id="btnPreviewRegulaFalsi" class="nav-link" draggable="true" data-method="Regla Falsa"><i class="fa-solid fa-ruler-horizontal"></i> Regla Falsa</a></li>
+                
+                <li class="nav-section mt-4">Métodos Abiertos</li>
+                <li><a href="#" id="btnPreviewNewtonRaphson" class="nav-link" draggable="true" data-method="Newton Raphson"><i class="fa-solid fa-wave-square"></i> Newton Raphson</a></li>
+                <li><a href="#" id="btnPreviewSecant" class="nav-link" draggable="true" data-method="Secante"><i class="fa-solid fa-bezier-curve"></i> Secante</a></li>
+                <li><a href="#" id="btnPreviewFixedPoint" class="nav-link" draggable="true" data-method="Punto Fijo"><i class="fa-solid fa-crosshairs"></i> Punto Fijo</a></li>
+                
+                <li class="nav-section mt-4">Métodos Polinomiales</li>
+                <li><a href="#" id="btnPreviewMuller" class="nav-link" draggable="true" data-method="Müller"><i class="fa-solid fa-superscript"></i> Müller</a></li>
+                <li><a href="#" id="btnPreviewBairstow" class="nav-link" draggable="true" data-method="Bairstow"><i class="fa-solid fa-divide"></i> Bairstow</a></li>
+                <li><a href="#" id="btnPreviewNewtonHorner" class="nav-link" draggable="true" data-method="Newton Horner"><i class="fa-solid fa-square-root-variable"></i> Newton Horner</a></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <label for="repeatOptions">Criterio de Parada</label>
+                <select id="repeatOptions" name="repeatOptions" class="styled-select">
+                    <option value="Cumplir Tolerancia">Cumplir Tolerancia</option>
+                    <option value="Definir Iteraciones">Definir Iteraciones</option>
+                </select>
+            </div>
+        </aside>
+        
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Este es el contenedor que MathLogistic.js llenará -->
+            <div id="mathContainer" class="math-container-area">
+
+                <!-- Estado vacío inicial -->
+                <div class="empty-state">
+                    <i class="fa-solid fa-calculator empty-icon"></i>
+                    <h3 class="empty-title">Bienvenido a WToMath RootSearcher</h3>
+                    <p class="empty-subtitle">Elige un método numérico del menú izquierdo para resolver tu ecuación.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="ThemeManager.js"></script>
+    <script type="module" src="MathLogistic.js"></script>
+</body>
+</html>
