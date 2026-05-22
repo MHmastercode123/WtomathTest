@@ -1620,6 +1620,15 @@ function loadRootSearcher(method) {
         graphicDisplay.appendChild(grafica);
     };
 
+    let grafica3D = document.getElementById('grafica3D');
+    if (!grafica3D) {
+        grafica3D = document.createElement('div');
+        grafica3D.id = 'grafica3D';
+        grafica3D.width = 600;
+        grafica3D.height = 300;
+        graphicDisplay.appendChild(grafica3D);
+    };
+
     let chartCanvas = document.getElementById('chart');
     if (!chartCanvas) {
         chartCanvas = document.createElement('canvas');

@@ -15,6 +15,11 @@ export function NewtonRaphsonMethod(
     epsilon,
     repeatOption
 ) {
+    const grafica3D = document.getElementById("grafica3D");
+    grafica3D.style.display = "none";
+    const grafica = document.getElementById("grafica");
+    grafica.style.display = "block";
+
     const mathContainer = document.getElementById("mathContainer");
 
     const table = document.getElementById("tableDisplay");
@@ -572,10 +577,34 @@ export function NewtonRaphsonSystemMethod(
 
     const row = document.createElement("tr");
 
+    // Preparación de Variables y Derivadas Analíticas (Jacobiano)
+    const vars = type === "system2" ? ["x", "y"] : ["x", "y", "z"];
+    const n = vars.length;
+
+    // Asegurar que las ecuaciones no tengan espacios raros y estén limpias
+    const cleanedEqs = equations.map(eq => {
+        let clean = eq.trim();
+        if (clean.includes("=")) {
+            const parts = clean.split("=");
+            const left = parts[0];
+            const right = parts.slice(1).join("=");
+            clean = right.trim() === "" ? left : `(${left}) - (${right})`;
+        }
+        return clean;
+    });
+
+    const parsedEqs = cleanedEqs.map(eq => math.parse(eq));
+    const compiledEqs = parsedEqs.map(node => node.compile());
+
     // Definir encabezados de tabla según el tipo
     let headerRow = [];
     if (type === "system2") {
+        console.log("system2");
+        plotSystemEquations(compiledEqs);
         headerRow = ["Iteración", "x", "y", "f1(x,y)", "f2(x,y)", "Error Relativo Max"];
+    } else if (type === "system3") {
+        console.log("system3");
+        plotSystemEquations(compiledEqs);
     } else {
         headerRow = ["Iteración", "x", "y", "z", "f1(x,y,z)", "f2(x,y,z)", "f3(x,y,z)", "Error Relativo Max"];
     }
@@ -621,25 +650,6 @@ export function NewtonRaphsonSystemMethod(
             right: { style: "thin" }
         };
     });
-
-    // 3. Preparación de Variables y Derivadas Analíticas (Jacobiano)
-    const vars = type === "system2" ? ["x", "y"] : ["x", "y", "z"];
-    const n = vars.length;
-
-    // Asegurar que las ecuaciones no tengan espacios raros y estén limpias
-    const cleanedEqs = equations.map(eq => {
-        let clean = eq.trim();
-        if (clean.includes("=")) {
-            const parts = clean.split("=");
-            const left = parts[0];
-            const right = parts.slice(1).join("=");
-            clean = right.trim() === "" ? left : `(${left}) - (${right})`;
-        }
-        return clean;
-    });
-
-    const parsedEqs = cleanedEqs.map(eq => math.parse(eq));
-    const compiledEqs = parsedEqs.map(node => node.compile());
 
     // Calcular Jacobiano Simbólico
     const jacobianSym = [];
@@ -1114,3 +1124,232 @@ export function NewtonRaphsonSystemMethod(
         }
     }
 }
+
+// ================================
+// GRÁFICA DE ECUACIONES (system2)
+// ================================
+
+function plotSystemEquations(compiledEqs) {
+    const n = compiledEqs.length;
+    console.log(n)
+
+    if (n <= 2) {
+        plot2DSystem(compiledEqs);
+    } else {
+        plot3DSystem(compiledEqs);
+    }
+}
+
+function plot2DSystem(compiledEqs) {
+    const canvas = document.getElementById("grafica");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    const range = 10;
+    const step = 0.2;
+
+    const datasets = [];
+    const colors = ["red", "blue", "green"];
+
+    const xValues = [];
+
+    for (let x = -range; x <= range; x += step) {
+        xValues.push(x);
+    }
+
+    compiledEqs.forEach((f, index) => {
+        if (!f) return;
+
+        const yValues = [];
+
+        for (let x = -range; x <= range; x += step) {
+            let best = null;
+
+            for (let y = -range; y <= range; y += step) {
+                try {
+                    const err = Math.abs(f.evaluate({ x, y }));
+
+                    if (!best || err < best.err) {
+                        best = { y, err };
+                    }
+                } catch (e) {}
+            }
+
+            yValues.push(best ? best.y : null);
+        }
+
+        datasets.push({
+            label: `f${index + 1}(x,y)=0`,
+            data: yValues,
+            borderColor: colors[index] || "black",
+            pointRadius: 0,
+            tension: 0.2
+        });
+    });
+
+    const existing = Chart.getChart(canvas);
+    if (existing) existing.destroy();
+
+    new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: xValues,
+            datasets
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `y = ${ctx.parsed.y}`
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: "x" } },
+                y: { title: { display: true, text: "y" } }
+            }
+        }
+    });
+}
+
+function plot3DSystem(equations) {
+    const grafica3D = document.getElementById("grafica3D");
+    const grafica = document.getElementById("grafica");
+
+    grafica3D.style.display = "block";
+    grafica.style.display = "none";
+
+    Plotly.purge("grafica3D");
+
+    const range = 5;
+    const step = 0.3;
+
+    const traces = [];
+
+    equations.forEach((eq, index) => {
+
+        const color = getUniqueColor();
+
+        const values = [];
+        const x = [];
+        const y = [];
+        const z = [];
+
+        for (let i = -range; i <= range; i += step) {
+            for (let j = -range; j <= range; j += step) {
+                for (let k = -range; k <= range; k += step) {
+
+                    const scope = { x: i, y: j, z: k };
+
+                    let val = 0;
+
+                    try {
+                        val = Math.abs(eq.evaluate(scope));
+                    } catch {
+                        continue;
+                    }
+
+                    x.push(i);
+                    y.push(j);
+                    z.push(k);
+                    values.push(val);
+                }
+            }
+        }
+
+        traces.push({
+            type: "isosurface",
+            x,
+            y,
+            z,
+            value: values,
+
+            isomin: 0,
+            isomax: 0.3,
+            surface: {
+                count: 1
+            },
+
+            colorscale: [
+                [0, color],
+                [1, color]
+            ],
+
+            opacity: 0.6,
+
+            showscale: false,
+
+            name: `f${index + 1}`
+        });
+    });
+
+    const layout = {
+        title: {
+            text: "Sistema de ecuaciones 3x3",
+            font: { color: "#e5e7eb" }
+        },
+
+        paper_bgcolor: "#0f172a",
+        plot_bgcolor: "#0f172a",
+
+        scene: {
+            bgcolor: "#0f172a",
+
+            xaxis: {
+                title: "X",
+                gridcolor: "rgba(255,255,255,0.08)",
+                zerolinecolor: "rgba(255,255,255,0.2)"
+            },
+
+            yaxis: {
+                title: "Y",
+                gridcolor: "rgba(255,255,255,0.08)",
+                zerolinecolor: "rgba(255,255,255,0.2)"
+            },
+
+            zaxis: {
+                title: "Z",
+                gridcolor: "rgba(255,255,255,0.08)",
+                zerolinecolor: "rgba(255,255,255,0.2)"
+            }
+        }
+    };
+
+    Plotly.newPlot("grafica3D", traces, layout);
+
+    setTimeout(() => {
+        Plotly.Plots.resize("grafica3D");
+    }, 100);
+}
+
+function getUniqueColor() {
+    const baseColors = [
+        "#9b59b6",
+        "#f39c12",
+        "#1abc9c",
+        "#e67e22",
+        "#34495e",
+        "#e84393",
+        "#fd79a8",
+        "#fdcb6e",
+        "#6c5ce7",
+        "#00b894"
+    ];
+
+    // si el pool está vacío → lo recargamos y mezclamos
+    if (colorPool.length === 0) {
+        colorPool = [...baseColors];
+
+        // shuffle (Fisher-Yates)
+        for (let i = colorPool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [colorPool[i], colorPool[j]] = [colorPool[j], colorPool[i]];
+        }
+    }
+
+    return colorPool.pop();
+}
+
+let colorPool = [];

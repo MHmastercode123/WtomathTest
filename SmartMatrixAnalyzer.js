@@ -8,7 +8,7 @@ function clearMathContainer() {
 // Convertidor robusto de LaTeX a Expresiones Matemáticas de math.js (Consistente con la lógica del proyecto)
 function latexToMathExpr(latex) {
     if (!latex) return "";
-    
+
     let expr = latex
         .replace(/\$\$/g, '') // Eliminar tokens de modo matemático ($$)
         .replace(/\\left/g, '')
@@ -22,7 +22,7 @@ function latexToMathExpr(latex) {
         const parts = expr.split('=');
         const leftSide = parts[0];
         const rightSide = parts.slice(1).join('=');
-        
+
         if (rightSide === "" || rightSide === "0") {
             expr = leftSide;
         } else {
@@ -73,13 +73,13 @@ function latexToMathExpr(latex) {
     expr = expr
         // Raíz cuadrada
         .replace(/\\sqrt\{([^{}]*)\}/g, 'sqrt($1)')
-        
+
         // Factorial
         .replace(/([a-zA-Z0-9]+)!/g, 'factorial($1)')
 
         // Constante Pi
         .replace(/\\pi/g, 'pi')
-        
+
         // Asegurar paréntesis en exponentes complejos
         .replace(/\^{([^}]+)}/g, '^($1)')
 
@@ -90,7 +90,7 @@ function latexToMathExpr(latex) {
         .replace(/\\cdot/g, '*')
         .replace(/\\times/g, '*')
         .replace(/\\div/g, '/')
-        
+
         // Limpiar cualquier barra invertida restante
         .replace(/\\/g, '');
 
@@ -303,7 +303,7 @@ function performSystemAnalysis(resultsContainer) {
 
     try {
         const math = typeof window.math !== 'undefined' ? window.math : math;
-        
+
         // 1. Limpieza y Compilación de LaTeX a expresiones matemáticas de math.js
         const cleanEq1 = latexToMathExpr(rawEq1);
         const cleanEq2 = latexToMathExpr(rawEq2);
@@ -392,7 +392,7 @@ function performSystemAnalysis(resultsContainer) {
                                 candidates.push({ x: cx, y: cy, residual: residual });
                             }
                         }
-                    } catch (e) {}
+                    } catch (e) { }
                 }
             }
         } else {
@@ -421,7 +421,7 @@ function performSystemAnalysis(resultsContainer) {
                                     }
                                 }
                             }
-                        } catch (e) {}
+                        } catch (e) { }
                     }
                 }
             }
@@ -449,7 +449,7 @@ function performSystemAnalysis(resultsContainer) {
             if (!tooClose) {
                 distinctCandidates.push(cand);
             }
-            if (distinctCandidates.length >= 5) break; 
+            if (distinctCandidates.length >= 5) break;
         }
 
         // 5. Análisis de Singularidad Jacobiana para cada candidato
@@ -504,8 +504,9 @@ function performSystemAnalysis(resultsContainer) {
                 <!-- KaTeX render -->
             </div>
         `;
+
         resultsContainer.appendChild(jCard);
-        
+
         const jDiv = jCard.querySelector("#sysJacobianContainer");
         katex.render(jacobianLaTeX, jDiv, { displayMode: true, throwOnError: false });
 
@@ -598,21 +599,54 @@ function performSystemAnalysis(resultsContainer) {
         tutorCard.className = "dashboard-card drop-animate";
         tutorCard.style.padding = "20px";
         tutorCard.innerHTML = `
-            <h3 class="card-title"><i class="fa-solid fa-graduation-cap"></i> Tutor Académico - Geometría y Estabilidad</h3>
-            <div style="line-height:1.6; color:#ddd; font-size:0.95em;">
-                <p><strong>¿Qué está ocurriendo físicamente en el sistema?</strong></p>
-                ${dim === "system2" 
-                    ? `<p>En un sistema de dos variables, resolver $f_1(x,y)=0$ y $f_2(x,y)=0$ equivale a encontrar los <strong>puntos de intersección</strong> entre dos curvas en el plano Cartesiano. En la gráfica, la línea <span style="color:#ff6b6b; font-weight:bold;">roja</span> ($f_1 = 0$) y la línea <span style="color:#4facfe; font-weight:bold;">azul</span> ($f_2 = 0$) muestran dónde se anula cada ecuación. Las intersecciones exactas representan las raíces del sistema.</p>` 
-                    : `<p>En tres variables, cada ecuación $f_i(x,y,z)=0$ describe una <strong>superficie tridimensional</strong> en el espacio. Las soluciones corresponden a los puntos exactos donde las tres superficies se intersecan simultáneamente. La nube de colores en el espacio representa la región de mínimo error residual (donde la suma de cuadrados es mínima) que te guía hacia la intersección perfecta.</p>`
-                }
-                <p><strong>El rol de la Matriz Jacobiana y el Determinante:</strong></p>
-                <p>El método de Newton-Raphson utiliza la matriz Jacobiana $\\mathbf{J}$ para linealizar localmente el sistema tridimensional o bidimensional. En cada iteración, se actualiza el vector de variables resolviendo $\\mathbf{J} \\cdot \\mathbf{\\Delta} = -\\mathbf{F}$.</p>
-                <p style="border-left:3px solid #ff6b6b; padding-left:10px; background:rgba(255,107,107,0.05); margin:10px 0;">
-                    ⚠️ Si seleccionas un punto de inicio donde $\\det(\\mathbf{J}) \\approx 0$, la matriz no tiene inversa robusta. El algoritmo de Newton-Raphson sufrirá un desborde numérico (división por cero) o una oscilación infinita, provocando que las iteraciones fallen.
-                </p>
-                <p>¡Por eso el barrido multidimensional del analizador es tan valioso! Te asegura arrancar la simulación sobre las zonas de convergencia segura.</p>
-            </div>
-        `;
+    <h3 class="card-title">
+        <i class="fa-solid fa-graduation-cap"></i> Tutor Académico - Geometría y Estabilidad
+    </h3>
+
+    <div style="line-height:1.6; color:#ddd; font-size:0.95em;">
+
+        <p><strong>¿Qué está ocurriendo físicamente en el sistema?</strong></p>
+
+        ${dim === "system2"
+                ? `<p>
+                En un sistema de dos variables, resolver f₁(x,y) = 0 y f₂(x,y) = 0 equivale a encontrar los
+                <strong>puntos de intersección</strong> entre dos curvas en el plano cartesiano.
+                En la gráfica, la línea roja (f₁ = 0) y la línea azul (f₂ = 0) muestran dónde se anula cada ecuación.
+                Las intersecciones exactas representan las raíces del sistema.
+               </p>`
+                : `<p>
+                En tres variables, cada ecuación fᵢ(x,y,z) = 0 describe una
+                <strong>superficie tridimensional</strong> en el espacio.
+                Las soluciones corresponden a los puntos donde las tres superficies se intersecan simultáneamente.
+                La nube de colores representa la región de mínimo error residual, guiando hacia la intersección.
+               </p>`
+            }
+
+        <p><strong>El rol de la Matriz Jacobiana y el Determinante:</strong></p>
+
+        <p>
+            El método de Newton-Raphson utiliza la matriz Jacobiana para linealizar localmente el sistema.
+            En cada iteración, se resuelve el sistema:
+        </p>
+
+        <div id="nrEquationBlock" style="margin:10px 0;"></div>
+
+        <p>
+            donde J es la matriz Jacobiana y Δ el vector de corrección.
+        </p>
+
+        <p style="border-left:3px solid #ff6b6b; padding-left:10px; background:rgba(255,107,107,0.05); margin:10px 0;">
+            ⚠️ Si el determinante de J es cercano a cero, la matriz pierde estabilidad numérica.
+            Esto puede provocar división por cero, divergencia o oscilaciones en Newton-Raphson.
+        </p>
+
+        <p>
+            Por eso el barrido del analizador es importante: ayuda a elegir puntos iniciales dentro de regiones
+            de convergencia estable.
+        </p>
+
+    </div>
+`;
         resultsContainer.appendChild(tutorCard);
 
     } catch (err) {
@@ -642,8 +676,8 @@ function drawSystemPlot(plotDiv, dim, comp1, comp2, comp3, xMin, xMax, yMin, yMa
             for (let i = 0; i < gridRes; i++) {
                 const cx = xCoords[i];
                 let v1 = 0, v2 = 0;
-                try { v1 = comp1.evaluate({ x: cx, y: cy }); } catch(e){}
-                try { v2 = comp2.evaluate({ x: cx, y: cy }); } catch(e){}
+                try { v1 = comp1.evaluate({ x: cx, y: cy }); } catch (e) { }
+                try { v2 = comp2.evaluate({ x: cx, y: cy }); } catch (e) { }
                 row1.push(v1);
                 row2.push(v2);
             }
@@ -741,7 +775,8 @@ function drawSystemPlot(plotDiv, dim, comp1, comp2, comp3, xMin, xMax, yMin, yMa
             type: 'scatter3d',
             marker: {
                 symbol: 'diamond',
-                size: 8,
+                size: 3,
+                opacity: 0.7,
                 color: candidates.map(c => c.isSingular ? '#ff6b6b' : 'gold'),
                 line: { color: 'black', width: 1.5 }
             },
@@ -759,12 +794,18 @@ function drawSystemPlot(plotDiv, dim, comp1, comp2, comp3, xMin, xMax, yMin, yMa
                 xaxis: { title: 'X', gridcolor: 'rgba(255,255,255,0.1)', backgroundcolor: 'rgba(0,0,0,0.2)', showbackground: true },
                 yaxis: { title: 'Y', gridcolor: 'rgba(255,255,255,0.1)', backgroundcolor: 'rgba(0,0,0,0.2)', showbackground: true },
                 zaxis: { title: 'Z', gridcolor: 'rgba(255,255,255,0.1)', backgroundcolor: 'rgba(0,0,0,0.2)', showbackground: true },
+                camera: {
+                    eye: { x: 1.6, y: 1.6, z: 1.2 }
+                }
             },
             showlegend: true,
             legend: { x: 0, y: 1.1, orientation: 'h' }
         };
 
         Plotly.newPlot(plotDiv, [traceNebula, traceCand], layout, { responsive: true });
+        setTimeout(() => {
+            Plotly.Plots.resize(plotDiv);
+        }, 200);
     }
 }
 
