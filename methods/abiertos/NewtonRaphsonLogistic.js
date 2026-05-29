@@ -1,4 +1,4 @@
-import { evaluateFunction } from "../MathLogistic.js";
+import { evaluateFunction } from "../utils.js";
 
 function formatNumber(num) {
     return num.toLocaleString('en-US', {
@@ -365,7 +365,6 @@ export function NewtonRaphsonMethod(
         }
     });
 }
-// =================================== //
 
 
 // FUNCION PARA REALIZAR EL MÉTODO DE NEWTON RAPHSON //
@@ -472,7 +471,6 @@ function NewtonRaphsonOperation(
         relativeError
     }
 }
-// ============================================== //
 
 
 // FUNCION PARA CALCULO DEL MÉTODO DE NEWTON RAPHSON //
@@ -511,7 +509,6 @@ function NewtonRaphsonCalculus(
         iterate
     }
 }
-// ============================================== //
 
 // FUNCION PARA IMPRIMIR DATOS DEL MÉTODO DE NEWTON RAPHSON //
 function NewtonRaphsonLog(
@@ -537,7 +534,6 @@ function NewtonRaphsonLog(
     console.log(`Derivada - evaluación: f(x) = ${derivatedMathFunction} // f(x) = ${derivatedApproachEvaluation}`);
     console.log("");
 }
-// ===================================================== //
 
 // NEWTON-RAPHSON PARA SISTEMAS DE ECUACIONES NO LINEALES (2x2 y 3x3) //
 export function NewtonRaphsonSystemMethod(
@@ -797,7 +793,6 @@ export function NewtonRaphsonSystemMethod(
                         <br><br>
                         La <strong>Matriz Jacobiana</strong> (matriz de derivadas parciales) es <strong>singular</strong>, lo que significa que su determinante es exactamente <strong>0</strong> y no posee inversa.
                     </p>
-                    
                     <div style="margin:20px 0; background:rgba(0,0,0,0.25); padding:18px; border-radius:8px; border-left:4px solid #ff6b6b; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);">
                         <h4 style="margin-top:0; margin-bottom:12px; color:#ff8e8e; font-size:0.95rem; text-transform:uppercase; letter-spacing:0.5px;">Matriz Jacobiana Evaluada:</h4>
                         ${katex.renderToString(matrixLatex, { throwOnError: false, displayMode: true })}

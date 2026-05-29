@@ -1,4 +1,4 @@
-import { evaluateFunction } from "../MathLogistic.js";
+import { evaluateFunction } from "../utils.js";
 
 function formatNumber(num) {
     return num.toLocaleString('en-US', {
@@ -242,7 +242,7 @@ export function RegulaFalsiMethod(
                         mathContainer.removeChild(link);
                     });
 
-                    const excelDisply = document.getElementById("excelDisplay");
+                    const excelDisplay = document.getElementById("excelDisplay");
                     excelDisplay.appendChild(excelbtn);
                 }
             },
@@ -354,14 +354,13 @@ export function RegulaFalsiMethod(
                         mathContainer.removeChild(link);
                     });
 
-                    const excelDisply = document.getElementById("excelDisplay");
+                    const excelDisplay = document.getElementById("excelDisplay");
                     excelDisplay.appendChild(excelbtn);
                 }
             },
         }
     });
 }
-// =================================== //
 
 
 // FUNCION PARA REALIZAR EL MÉTODO DE REGLA FALSA //
@@ -474,7 +473,6 @@ function RegulaFalsiOperation(
         relativeError
     }
 }
-// ============================================== //
 
 
 // FUNCION PARA CALCULO DEL MÉTODO DE REGLA FALSA //
@@ -535,7 +533,6 @@ function RegulaFalsiCalculus(
         iterate
     }
 }
-// ============================================== //
 
 // FUNCION PARA IMPRIMIR DATOS DEL MÉTODO DE REGLA FALSA //
 function RegulaFalsiLog(
@@ -571,4 +568,3 @@ function RegulaFalsiLog(
     console.log(`B/xr - es menor que 0: ${bIsLessThanZero}`);
     console.log("");
 }
-// ===================================================== //

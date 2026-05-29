@@ -1,4 +1,4 @@
-import { evaluateFunction } from "../MathLogistic.js";
+import { evaluateFunction } from "../utils.js";
 
 function formatNumber(num) {
     const value = Number(num);

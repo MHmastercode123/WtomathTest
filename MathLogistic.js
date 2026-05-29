@@ -1,14 +1,16 @@
-import { BisectionMethod } from "./methods/BisectionLogistic.js";
-import { RegulaFalsiMethod } from "./methods/RegulaFalsiLogistic.js";
-import { NewtonRaphsonMethod, NewtonRaphsonSystemMethod } from "./methods/NewtonRaphsonLogistic.js";
-import { SecantMethod } from "./methods/SecantLogistic.js";
-import { FixedPointMethod } from "./methods/FixedPointLogistic.js";
-import { MullerMethod } from "./methods/MullerLogistic.js";
-import { BairstowMethod } from "./methods/BairstowLogistic.js";
-import { NewtonHornerMethod } from "./methods/NewtonHornerLogistic.js";
+import { BisectionMethod } from "./methods/cerrados/BisectionLogistic.js";
+import { RegulaFalsiMethod } from "./methods/cerrados/RegulaFalsiLogistic.js";
+import { NewtonRaphsonMethod, NewtonRaphsonSystemMethod } from "./methods/abiertos/NewtonRaphsonLogistic.js";
+import { SecantMethod } from "./methods/abiertos/SecantLogistic.js";
+import { FixedPointMethod } from "./methods/abiertos/FixedPointLogistic.js";
+import { MullerMethod } from "./methods/polinomiales/MullerLogistic.js";
+import { BairstowMethod } from "./methods/polinomiales/BairstowLogistic.js";
+import { NewtonHornerMethod } from "./methods/polinomiales/NewtonHornerLogistic.js";
 import { loadSmartAnalyzer } from "./SmartAnalyzer.js";
 import { loadSmartSystemAnalyzer } from "./SmartMatrixAnalyzer.js";
-import { loadCalcTaylor } from "./methods/SeriesLogistic.js";
+import { loadCalcTaylor } from "./methods/series/SeriesLogistic.js";
+import { loadSistemasIterativos } from "./methods/sistemas/SistemasIterativosLogistic.js";
+import { evaluateFunction, latexToMathExpr, latexToMathEquation } from "./methods/utils.js";
 // OPERACIONES AL CARGAR EL DOM //
 function initUI() {
     if (window._uiInitialized) return;
@@ -135,6 +137,14 @@ function triggerMethodLoad(method) {
         loadSmartSystemAnalyzer();
         return;
     }
+    if (method === "Jacobi") {
+        loadSistemasIterativos("Jacobi");
+        return;
+    }
+    if (method === "Gauss-Seidel") {
+        loadSistemasIterativos("Gauss-Seidel");
+        return;
+    }
     if (method === "Taylor") {
         loadCalcTaylor();
         return;
@@ -234,102 +244,7 @@ function prepareTitle(method) {
 // ========================================================== //
 
 
-// CONVERSOR DE FORMATO LATEX A FUNCION MATEMATICA //
-function latexToMathExpr(latex) {
-    let expr = latex
-        // 1. Limpiar espacios y saltos
-        .replace(/\n/g, '')
-        .replace(/\s+/g, '');
-
-    // Convert curly brace superscripts to parentheses and replace unicode minus
-    expr = expr.replace(/\^{([^}]*)}/g, '^($1)').replace(/−/g, '-');
-
-    // Eliminar f(x)=, P(x)=, y=, etc. o convertir A=B a (A)-(B)
-    if (expr.includes('=')) {
-        const parts = expr.split('=');
-        const leftSide = parts[0];
-        const rightSide = parts.slice(1).join('=');
-        
-        if (rightSide === "") {
-            expr = leftSide;
-        } else {
-            const isFunctionDecl = /^([a-zA-Z][a-zA-Z0-9_]*\([xX]\)|[yY])$/.test(leftSide);
-            if (isFunctionDecl) {
-                expr = rightSide;
-            } else {
-                expr = `(${leftSide})-(${rightSide})`;
-            }
-        }
-    }
-
-    return expr
-        // 2. Eliminar left/right
-        .replace(/\\left/g, '')
-        .replace(/\\right/g, '')
-
-        // 3. Normalizar funciones SIN backslash primero (IMPORTANTE)
-        .replace(/\bln\b/g, 'log')
-        .replace(/\blog\b/g, 'log')
-        .replace(/\bsin\b/g, 'sin')
-        .replace(/\bcos\b/g, 'cos')
-        .replace(/\btan\b/g, 'tan')
-        .replace(/\bexp\b/g, 'exp')
-
-        // 4. Proteger funciones con backslash
-        .replace(/\\sin/g, '§sin')
-        .replace(/\\cos/g, '§cos')
-        .replace(/\\tan/g, '§tan')
-        .replace(/\\sec/g, '§sec')
-        .replace(/\\csc/g, '§csc')
-        .replace(/\\cot/g, '§cot')
-        .replace(/\\log/g, '§log')
-        .replace(/\\ln/g, '§log')
-        .replace(/\\exp/g, '§exp')
-
-        // 5. Log con base
-        .replace(/\\log_\{([^}]*)\}\(([^)]*)\)/g, 'log($2,$1)')
-        .replace(/\\log_\{([^}]*)\}\{([^}]*)\}/g, 'log($2,$1)')
-        .replace(/\\log_([0-9a-zA-Z]+)\(([^)]*)\)/g, 'log($2,$1)')
-
-        // 6. Fracciones
-        .replace(/\\frac{([^}]*)}{([^}]*)}/g, '($1)/($2)')
-
-        // 7. Raíces
-        .replace(/\\sqrt{([^}]*)}/g, 'sqrt($1)')
-
-        // 8. Factorial
-        .replace(/([0-9]+)!/g, 'factorial($1)')
-
-        // 9. Constantes
-        .replace(/\\pi/g, 'pi')
-
-        // 10. Euler (e^x)
-        .replace(/e\^{([^}]*)}/g, 'exp($1)')
-        .replace(/§exp\(([^)]*)\)/g, 'exp($1)')
-
-        // 11. Potencias (más seguras)
-        .replace(/([a-zA-Z0-9\)\]])\^{([^}]*)}/g, 'pow($1,$2)')
-        .replace(/([a-zA-Z0-9\)\]])\^([a-zA-Z0-9]+)/g, 'pow($1,$2)')
-
-        // 12. Operadores
-        .replace(/\\cdot/g, '*')
-        .replace(/\\times/g, '*')
-        .replace(/\\div/g, '/')
-
-        // 13. Restaurar funciones
-        .replace(/§/g, '');
-}
-// =============================================== //
-
-
-// CONVERSOR DE FORMATO LATEX A ECUACIÓN MATEMÁTICA //
-function latexToMathEquation(expr) {
-    return expr
-        .replace(/\\frac{([^}]*)}{([^}]*)}/g, '($1)/($2)') // fracciones
-        .replace(/\\left|\\right/g, '') // quitar left/right
-        .replace(/\\/g, '') // quitar \ restantes
-        .trim();
-}
+// Las funciones latexToMathExpr y latexToMathEquation se importan desde ./methods/utils.js
 // ================================================ //
 
 
@@ -677,27 +592,8 @@ function RootSearcher(method, repeatOption) {
 // ================================ //
 
 
-// FUNCION PARA EVALUAR FUNCIONES //
-export function evaluateFunction(
-    mathFunction,
-    xValue
-) {
-    let result = mathFunction.evaluate({ x: xValue });
-    let lessThanZero;
-
-    if (result < 0) {
-        lessThanZero = true;
-    }
-    else {
-        lessThanZero = false;
-    }
-
-    return {
-        lessThanZero,
-        result
-    };
-}
-// ============================== //
+// La función evaluateFunction se importa desde ./methods/utils.js y se re-exporta para compatibilidad
+export { evaluateFunction };
 
 
 // FUNCIÓN PARA CARGAR DATOS DEL FORMULARIO //

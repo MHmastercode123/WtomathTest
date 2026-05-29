@@ -1,62 +1,4 @@
-export function latexToMathExpr(latex) {
-    let expr = latex
-        .replace(/\n/g, '')
-        .replace(/\s+/g, '');
-
-    // Eliminar f(x)=, P(x)=, y=, etc. o convertir A=B a (A)-(B)
-    if (expr.includes('=')) {
-        const parts = expr.split('=');
-        const leftSide = parts[0];
-        const rightSide = parts.slice(1).join('=');
-        
-        if (rightSide === "") {
-            expr = leftSide;
-        } else {
-            const isFunctionDecl = /^([a-zA-Z][a-zA-Z0-9_]*\([xX]\)|[yY])$/.test(leftSide);
-            if (isFunctionDecl) {
-                expr = rightSide;
-            } else {
-                expr = `(${leftSide})-(${rightSide})`;
-            }
-        }
-    }
-
-    return expr
-        .replace(/\\left/g, '')
-        .replace(/\\right/g, '')
-        .replace(/\bln\b/g, 'log')
-        .replace(/\blog\b/g, 'log')
-        .replace(/\bsin\b/g, 'sin')
-        .replace(/\bcos\b/g, 'cos')
-        .replace(/\btan\b/g, 'tan')
-        .replace(/\bexp\b/g, 'exp')
-        .replace(/\\sin/g, '§sin')
-        .replace(/\\cos/g, '§cos')
-        .replace(/\\tan/g, '§tan')
-        .replace(/\\sec/g, '§sec')
-        .replace(/\\csc/g, '§csc')
-        .replace(/\\cot/g, '§cot')
-        .replace(/\\log/g, '§log')
-        .replace(/\\ln/g, '§log')
-        .replace(/\\exp/g, '§exp')
-        .replace(/\\log_\{([^}]*)\}\(([^)]*)\)/g, 'log($2,$1)')
-        .replace(/\\log_\{([^}]*)\}\{([^}]*)\}/g, 'log($2,$1)')
-        .replace(/\\log_([0-9a-zA-Z]+)\(([^)]*)\)/g, 'log($2,$1)')
-        .replace(/\\frac{([^}]*)}{([^}]*)}/g, '($1)/($2)')
-        .replace(/\\sqrt{([^}]*)}/g, 'sqrt($1)')
-        .replace(/([0-9]+)!/g, 'factorial($1)')
-        .replace(/\\pi/g, 'pi')
-        .replace(/e\^{([^}]*)}/g, 'exp($1)')
-        .replace(/e\^\(([^)]+)\)/g, 'exp($1)')
-        .replace(/e\^([\-\+]?[a-zA-Z0-9\.]+)/g, 'exp($1)')
-        .replace(/§exp\(([^)]*)\)/g, 'exp($1)')
-        .replace(/([a-zA-Z0-9\)\]])\^{([^}]*)}/g, 'pow($1,$2)')
-        .replace(/([a-zA-Z0-9\)\]])\^([a-zA-Z0-9]+)/g, 'pow($1,$2)')
-        .replace(/\\cdot/g, '*')
-        .replace(/\\times/g, '*')
-        .replace(/\\div/g, '/')
-        .replace(/§/g, '');
-}
+import { latexToMathExpr } from "../utils.js";
 
 function clearFields() {
         let functionDisplay = document.getElementById("functionDisplay");
@@ -594,7 +536,7 @@ function CalcTaylor() {
     comparationDisplay.appendChild(RealErrorBox);
 
     loadCalcTaylorLagrangeRest();
-};
+}
 
 export function loadCalcTaylor() {
     clearMathContainer();
@@ -707,14 +649,14 @@ export function loadCalcTaylor() {
 
     Field.appendChild(form);
 
-    // INSERCI§N DE CONTENEDORES DE PANELES //
+    // INSERCI§ N DE CONTENEDORES DE PANELES //
     txtField.appendChild(Field);
     // ==================================== //
 
 
     document.getElementById("mathContainer").appendChild(txtField);
     document.getElementById("mathContainer").appendChild(calcBox);
-};
+}
 
 function loadSeriesStyle() {
     let Title = document.getElementById("Title");

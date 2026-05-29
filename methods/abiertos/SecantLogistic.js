@@ -1,4 +1,4 @@
-import { evaluateFunction } from "../MathLogistic.js";
+import { evaluateFunction } from "../utils.js";
 
 function formatNumber(num) {
     return num.toLocaleString('en-US', {
@@ -7,46 +7,11 @@ function formatNumber(num) {
     });
 }
 
-function getCoefficients(expr) {
-    const str = expr.toString().replace(/\s+/g, '');
-
-    // Detectar grado máximo
-    const degrees = [...str.matchAll(/x\^(\d+)/g)].map(m => parseInt(m[1]));
-    const maxDegree = degrees.length ? Math.max(...degrees) : (str.includes('x') ? 1 : 0);
-
-    let coeffs = new Array(maxDegree + 1).fill(0);
-
-    // Separar términos
-    const terms = str.match(/[+-]?[^+-]+/g);
-
-    terms.forEach(term => {
-        let coef, degree;
-
-        if (term.includes('x^')) {
-            const [c, d] = term.split('x^');
-            coef = c === '' || c === '+' ? 1 : c === '-' ? -1 : parseFloat(c);
-            degree = parseInt(d);
-        } 
-        else if (term.includes('x')) {
-            const c = term.replace('x', '');
-            coef = c === '' || c === '+' ? 1 : c === '-' ? -1 : parseFloat(c);
-            degree = 1;
-        } 
-        else {
-            coef = parseFloat(term);
-            degree = 0;
-        }
-
-        coeffs[maxDegree - degree] = coef;
-    });
-
-    return coeffs;
-}
-
-// FUNCION PARA EL MÉTODO DE NEWTON HORNER //
-export function NewtonHornerMethod(
+// FUNCION PARA EL MÉTODO DE LA SECANTE //
+export function SecantMethod(
     mathFunction,
-    approach,
+    firstApproach,
+    secondApproach,
     iterations,
     epsilon,
     repeatOption
@@ -66,9 +31,9 @@ export function NewtonHornerMethod(
 
     const row = document.createElement("tr");
 
-    const headerRow = ["Iteración", "Aproximación", "f(Aproximación)", "f'(Aproximación)", "Nueva Aproximación", "Ec%"];
+    const headerRow = ["Iteración", "Aprox. anterior", "Aprox. posterior", "Nueva Aprox.", "f(Aprox. anterior)", "f(Aprox. posterior)", "Ec%"];
 
-    for (let i = 0; i <= 5; i++) {
+    for (let i = 0; i <= 6; i++) {
         const tableData = document.createElement("th");
         tableData.innerHTML = headerRow[i];
 
@@ -82,7 +47,7 @@ export function NewtonHornerMethod(
 
     table.appendChild(mainTable);
 
-    let method = "Newton Raphson";
+    let method = "Secante";
 
     // 1. Crear libro
     const workbook = new ExcelJS.Workbook();
@@ -105,7 +70,7 @@ export function NewtonHornerMethod(
         cell.fill = {
             type: "pattern",
             pattern: "solid",
-            fgColor: { argb: "8800AA96" }
+            fgColor: { argb: "AA000088" }
         };
 
         cell.alignment = {
@@ -122,22 +87,18 @@ export function NewtonHornerMethod(
         };
     });
 
-    
     let eachIteration = [];
     let eachApproach = [];
     let eachRelativeError = [];
-    
+
     let iteration = 1;
     let lastNewApproach = 0;
-    let lastDerivatedMathFunction = mathFunction;
     
-    let derivatedMathFunction = math.derivative(String(lastDerivatedMathFunction).replace(/\s*=\s*0\s*$/, ''), 'x');
-
-    while (true) {
-        const data = NewtonHornerOperation(
-            approach,
+    while(true) {
+        const data = SecantOperation(
+            firstApproach,
+            secondApproach,
             mathFunction,
-            derivatedMathFunction,
             epsilon,
             iteration,
             sheet,
@@ -145,12 +106,13 @@ export function NewtonHornerMethod(
         );
 
         eachIteration.push(iteration);
-        eachApproach.push(approach);
+        eachApproach.push(data.newApproach);
 
         eachRelativeError.push(data.relativeError);
 
-        approach = data.newApproach;
-
+        firstApproach = secondApproach;
+        secondApproach = data.newApproach;
+        
         lastNewApproach = data.newApproach;
 
         // Condición de parada por iteraciones
@@ -172,7 +134,7 @@ export function NewtonHornerMethod(
         iteration++;
     }
 
-    sheet.getColumn(6).numFmt = "0.00%";
+    sheet.getColumn(7).numFmt = "0.00%";
 
     let chartCanvas = document.getElementById('chart');
     // Destruir gráfico anterior si existe
@@ -188,12 +150,12 @@ export function NewtonHornerMethod(
         data: {
             labels: eachIteration,
             datasets: [{
-                label: 'Valor de Aproximación por iteración',
+                label: 'Valor de Aproximación (x_n+1) por iteración',
                 data: eachApproach,
-                borderColor: 'rgba(0, 170, 14, 0.53)',       // Línea principal (glow)
-                backgroundColor: 'rgba(0, 170, 26, 0.2)',     // Relleno suave debajo de la línea
-                pointBackgroundColor: 'rgba(14, 170, 0, 0.8)',// Puntos más sólidos
-                pointBorderColor: 'rgb(22, 121, 0)',           // Borde de los puntos, cercano al fondo
+                borderColor: 'rgba(170, 0, 0, 0.8)',
+                backgroundColor: 'rgba(170, 0, 0, 0.2)',
+                pointBackgroundColor: 'rgba(170, 0, 0, 0.9)',
+                pointHoverBackgroundColor: 'rgb(200, 0, 0)',
                 tension: 0.2
             }]
         },
@@ -216,7 +178,7 @@ export function NewtonHornerMethod(
                     }
                 },
                 y: { 
-                    title: { display: true, text: 'Valor de Aproximación' },
+                    title: { display: true, text: 'Valor de Aproximación (x_n+1)' },
                     ticks: {
                         callback: function(value) {
                             return value;
@@ -228,7 +190,7 @@ export function NewtonHornerMethod(
                 onComplete: async () => {
                     const chartImage = chartCanvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
 
-                    // Crear hoja para el gráfico del error
+                    // Crear hoja para el gráfico
                     let chartSheet = workbook.getWorksheet("Gráfico");
                     if (!chartSheet) {
                         chartSheet = workbook.addWorksheet("Gráfico");
@@ -247,7 +209,6 @@ export function NewtonHornerMethod(
                         tl: { col: 0, row: 0 }, // top-left
                         br: { col: 10, row: 20 } // bottom-right
                     });
-
 
                     // 6. Generar archivo
                     const buffer = await workbook.xlsx.writeBuffer();
@@ -301,12 +262,12 @@ export function NewtonHornerMethod(
         data: {
             labels: eachIteration,
             datasets: [{
-                label: 'Error Relativo por iteración',
+                label: 'Error Relativo',
                 data: eachRelativeError,
-                borderColor: 'rgba(0, 170, 14, 0.53)',       // Línea principal (glow)
-                backgroundColor: 'rgba(0, 170, 26, 0.2)',     // Relleno suave debajo de la línea
-                pointBackgroundColor: 'rgba(14, 170, 0, 0.8)',// Puntos más sólidos
-                pointBorderColor: 'rgb(22, 121, 0)',           // Borde de los puntos, cercano al fondo
+                borderColor: 'rgba(170, 0, 0, 0.8)',
+                backgroundColor: 'rgba(170, 0, 0, 0.2)',
+                pointBackgroundColor: 'rgba(170, 0, 0, 0.9)',
+                pointHoverBackgroundColor: 'rgb(200, 0, 0)',
                 tension: 0.2
             }]
         },
@@ -328,8 +289,8 @@ export function NewtonHornerMethod(
                         precision: 0 // Enteros para iteraciones
                     }
                 },
-                y: {
-                    title: { display: true, text: 'Error relativo' },
+                y: { 
+                    title: { display: true, text: 'Error Relativo por iteración' },
                     ticks: {
                         callback: function(value) {
                             return `${value*100}%`;
@@ -360,6 +321,7 @@ export function NewtonHornerMethod(
                         tl: { col: 0, row: 0 }, // top-left
                         br: { col: 10, row: 20 } // bottom-right
                     });
+
 
                     // 6. Generar archivo
                     const buffer = await workbook.xlsx.writeBuffer();
@@ -398,44 +360,44 @@ export function NewtonHornerMethod(
         }
     });
 }
-// =================================== //
+// ==================================== //
 
-
-// FUNCION PARA REALIZAR EL MÉTODO DE NEWTON HORNER //
-function NewtonHornerOperation(
-    approach,
+// FUNCION PARA REALIZAR EL MÉTODO DE LA SECANTE //
+function SecantOperation(
+    firstApproach,
+    secondApproach,
     mathFunction,
-    derivatedMathFunction,
     epsilon,
     iteration,
     sheet,
     lastNewApproach
 ) {
-    const result = NewtonHornerCalculus(
-        approach,
+    const result = SecantCalculus(
+        firstApproach,
+        secondApproach,
         mathFunction,
-        derivatedMathFunction,
         epsilon,
         iteration
     );
 
-    NewtonHornerLog(
+    SecantLog(
         iteration,
-        approach,
+        firstApproach,
+        secondApproach,
         result.newApproach,
         mathFunction,
-        derivatedMathFunction,
-        result.approachEvaluation,
-        result.derivatedApproachEvaluation
+        result.firstApproachEvaluation,
+        result.secondApproachEvaluation
     );
 
     const latexString = `
         \\begin{array}{l l}
         \\text{Iteración:} & ${iteration} \\\\
-        x_0 & ${approach} \\\\
-        f(x_0) & ${result.approachEvaluation} \\\\
-        f'(x_0) & ${result.derivatedApproachEvaluation} \\\\
-        Nuevo x_0 & ${result.newApproach} \\\\
+        x_0 & ${firstApproach} \\\\
+        x_1 & ${secondApproach} \\\\
+        f(x_0) & ${result.firstApproachEvaluation} \\\\
+        f(x_1) & ${result.secondApproachEvaluation} \\\\
+        x_2 & ${result.newApproach} \\\\
         \\end{array}
     `;
 
@@ -459,20 +421,22 @@ function NewtonHornerOperation(
 
 
     let excelFormula;
-    if (iteration === 1) excelFormula = `=E${iteration+1}/E${iteration+1}`;
-    if (iteration > 1) excelFormula = `=ABS((E${iteration+1}-E${iteration})/E${iteration})`
-    
-    if (iteration === 1) sheet.addRow([iteration, approach, result.approachEvaluation, result.derivatedApproachEvaluation, { formula: `=B${iteration+1}-(C${iteration+1}/D${iteration+1})` }, { formula: excelFormula }]);
-    else sheet.addRow([iteration, { formula: `=E${iteration}` }, result.approachEvaluation, result.derivatedApproachEvaluation, { formula: `=B${iteration+1}-(C${iteration+1}/D${iteration+1})` }, { formula: excelFormula }]);
+
+    if (iteration === 1) excelFormula = `=D${iteration+1}/D${iteration+1}`;
+    if (iteration > 1) excelFormula = `=ABS((D${iteration+1}-D${iteration})/D${iteration})`;
+
+    const newApproachExcelFormula = `=C${iteration+1} - (F${iteration+1} * (C${iteration+1} - B${iteration+1})) / (F${iteration+1} - E${iteration+1})`;
+
+    if (iteration === 1) sheet.addRow([iteration, firstApproach, secondApproach, { formula: newApproachExcelFormula }, result.firstApproachEvaluation, result.secondApproachEvaluation, { formula: excelFormula }]);
+    else sheet.addRow([iteration, { formula: `=C${iteration}` }, { formula: `=D${iteration}` }, { formula: newApproachExcelFormula }, result.firstApproachEvaluation, result.secondApproachEvaluation, { formula: excelFormula }]);
 
 
     let relativeError = 0;
 
     if (iteration === 1) {
         relativeError = 1;
-    }
-    else if (iteration > 1) {
-        relativeError = math.abs(((result.newApproach - lastNewApproach) / lastNewApproach));
+    } else {
+        relativeError = math.abs((lastNewApproach - result.newApproach) / result.newApproach);
     }
 
 
@@ -482,14 +446,15 @@ function NewtonHornerOperation(
 
     const data = [
         iteration,
-        formatNumber(approach),
-        formatNumber(result.approachEvaluation),
-        formatNumber(result.derivatedApproachEvaluation),
+        formatNumber(firstApproach),
+        formatNumber(secondApproach),
+        formatNumber(result.firstApproachEvaluation),
+        formatNumber(result.secondApproachEvaluation),
         formatNumber(result.newApproach),
         `${formatNumber(relativeError * 100)}%`
     ];
 
-    for (let i = 0; i <= 5; i++) {
+    for (let i = 0; i <= 6; i++) {
         const tableData = document.createElement("td");
         tableData.innerHTML = data[i];
 
@@ -508,122 +473,66 @@ function NewtonHornerOperation(
 // ============================================== //
 
 
-// FUNCION PARA CALCULO DEL MÉTODO DE NEWTON HORNER //
-function NewtonHornerCalculus(
-    approach,
+// FUNCION PARA CALCULO DEL MÉTODO DE LA SECANTE //
+function SecantCalculus(
+    firstApproach,
+    secondApproach,
     mathFunction,
-    derivatedMathFunction,
     epsilon,
     iteration
 ) {
-    // División sintética
-    let mathFunctionFinalResult = 0;
-    let syntheticResult = 0;
-    let term = 0;
-
-    let mathFunctionTerms = getCoefficients(mathFunction);
-    let derivatedMathFunctionTerms = getCoefficients(derivatedMathFunction);
-
-
-    console.log("División Sintética de la Función");
-    for (let i = 0; i < mathFunctionTerms.length; i++) {
-        term = mathFunctionTerms[i];
-        console.log(mathFunctionTerms[i])
-
-        term = syntheticResult + mathFunctionTerms[i];
-        console.log("Termino sumado: " + term)
-
-        if (i !== mathFunctionTerms.length - 1) {
-            syntheticResult = approach * term;
-            console.log("Resultado sintético: " + syntheticResult)
-        }
-
-        if (i === mathFunctionTerms.length - 1) {
-            mathFunctionFinalResult = term;
-        }
-    }
-
-    console.log(mathFunctionFinalResult);
-
-
-    // División sintética
-    let derivatedMathFunctionFinalResult = 0;
-    syntheticResult = 0;
-    term = 0;
-
-
-    console.log("División Sintética de la derivada de la Función");
-    for (let i = 0; i < derivatedMathFunctionTerms.length; i++) {
-        term = derivatedMathFunctionTerms[i];
-        console.log(derivatedMathFunctionTerms[i])
-
-        term = syntheticResult + derivatedMathFunctionTerms[i];
-        console.log("Termino sumado: " + term)
-
-        if (i !== derivatedMathFunctionTerms.length - 1) {
-            syntheticResult = approach * term;
-            console.log("Resultado sintético: " + syntheticResult)
-        }
-
-        if (i === derivatedMathFunctionTerms.length - 1) {
-            derivatedMathFunctionFinalResult = term;
-        }
-    }
-
-    console.log(derivatedMathFunctionFinalResult);
-
-    
     let iterate = true;
-    let { result: approachEvaluation } = evaluateFunction(mathFunction, approach);
 
-    let { result: derivatedApproachEvaluation } = evaluateFunction(derivatedMathFunction, approach);
+    // x_0 --- x_n-1
+    let { result: firstApproachEvaluation } = evaluateFunction(mathFunction, firstApproach);
 
-    let newApproach = approach - mathFunctionFinalResult / derivatedMathFunctionFinalResult;
+    // x_1 --- x_n
+    let { result: secondApproachEvaluation } = evaluateFunction(mathFunction, secondApproach)
 
-    if (approachEvaluation === 0) {
+    // x_2 --- x_n+1
+    let newApproach = secondApproach - secondApproachEvaluation * (secondApproach - firstApproach) / (secondApproachEvaluation - firstApproachEvaluation);
+
+
+    if (firstApproachEvaluation === 0 || secondApproachEvaluation === 0) {
         alert(`Se encontró la raíz exacta en la iteración ${iteration}...`);
         iterate = false;
     }
-    else if (Math.abs(approachEvaluation) <= epsilon) {
-        alert(`El valor de la raíz "${approach}" cumple con la precisión deseada en la iteración ${iteration}...`);
-        iterate = false;
-    }
-    else if (Math.abs(newApproach - approach) <= epsilon) {
-        alert(`Convergencia alcanzada en la iteración ${iteration}`);
+    else if (Math.abs(newApproach - secondApproach) <= epsilon) {
+        alert(`El valor de la raíz cumple con la precisión deseada en la iteración ${iteration}...`);
         iterate = false;
     }
 
     return {
         newApproach,
-        approachEvaluation,
-        derivatedApproachEvaluation,
+        firstApproachEvaluation,
+        secondApproachEvaluation,
         iterate
     }
 }
 // ============================================== //
 
-// FUNCION PARA IMPRIMIR DATOS DEL MÉTODO DE NEWTON HORNER //
-function NewtonHornerLog(
+// FUNCION PARA IMPRIMIR DATOS DEL MÉTODO DE LA SECANTE //
+function SecantLog(
     iteration,
-    approach,
+    firstApproach,
+    secondApproach,
     newApproach,
     mathFunction,
-    derivatedMathFunction,
-    approachEvaluation,
-    derivatedApproachEvaluation
+    firstApproachEvaluation,
+    secondApproachEvaluation
 ) {
     console.log(`Iteración: ${iteration}`);
-    console.log(`Aproximación Inicial: ${approach}`);
-    console.log(`Nueva Aproximación: ${newApproach}`);
+    console.log(`Primera Aproximación (x_0): ${firstApproach}`);
+    console.log(`Segunda Aproximación (x_1): ${secondApproach}`);
+    console.log(`Nueva Aproximación (x_2): ${newApproach}`);
 
     console.log("");
 
-    console.log("Fórmula: xo - f(xo) / f'(xo))");
-    console.log(`Cálculo de la aproximación: ${approach} - ${approachEvaluation} / ${derivatedApproachEvaluation}`);
+    console.log("Fórmula: x_1 - (f(x_1) * (x_1 - x_0)) / (f(x_1) - f(x_0))");
+    console.log(`Cálculo de la aproximación: ${secondApproach} - (${secondApproachEvaluation} * (${secondApproach} - ${firstApproach})) / (${secondApproachEvaluation} - ${firstApproachEvaluation})`);
 
     console.log("");
-    console.log(`Aproximación - evaluación: f(x) = ${mathFunction} // f(x) = ${approachEvaluation}`);
-    console.log(`Derivada - evaluación: f(x) = ${derivatedMathFunction} // f(x) = ${derivatedApproachEvaluation}`);
+    console.log(`Primera Aproximación - evaluación: f(x) = ${mathFunction} // f(x) = ${firstApproachEvaluation}`);
+    console.log(`Segunda Aproximación - evaluación: f(x) = ${mathFunction} // f(x) = ${secondApproachEvaluation}`);
     console.log("");
 }
-// ===================================================== //

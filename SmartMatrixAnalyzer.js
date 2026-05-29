@@ -123,7 +123,7 @@ export function loadSmartSystemAnalyzer() {
     formCard.innerHTML = `
         <h3 class="card-title"><i class="fa-solid fa-gears"></i> Configuración del Sistema</h3>
         <p style="color:#ccc; font-size:0.9em; margin-bottom:15px; line-height:1.4;">
-            Ingresa las ecuaciones de tu sistema no lineal en el **editor matemático** (como en los otros métodos) e indica los rangos de exploración. El analizador realizará un barrido multidimensional inteligente buscando aproximaciones iniciales ideales libres de singularidad Jacobiana.
+            Ingresa las ecuaciones de tu sistema no lineal en el <strong>editor matemático</strong> (como en los otros métodos) e indica los rangos de exploración. El analizador realizará un barrido multidimensional inteligente buscando aproximaciones iniciales ideales libres de singularidad Jacobiana.
         </p>
         
         <div style="margin-bottom:15px;">

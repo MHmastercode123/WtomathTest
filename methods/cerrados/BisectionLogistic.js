@@ -1,4 +1,4 @@
-import { evaluateFunction } from "../MathLogistic.js";
+import { evaluateFunction } from "../utils.js";
 
 function formatNumber(num) {
     return num.toLocaleString('en-US', {
@@ -359,7 +359,6 @@ export function BisectionMethod(
         }
     });
 }
-// =================================== //
 
 
 // FUNCION PARA REALIZAR EL MÉTODO DE BISECCIÓN //
@@ -479,7 +478,6 @@ function BisectionOperation(
         relativeError
     }
 }
-// ============================================ //
 
 
 // FUNCION PARA CALCULO DEL MÉTODO DE BISECCIÓN //
@@ -548,7 +546,6 @@ function BisectionCalculus(
         iterate
     };
 }
-// =================================== //
 
 
 // FUNCION PARA IMPRIMIR DATOS DEL MÉTODO DE BISECCIÓN //
@@ -587,4 +584,3 @@ function BisectionLog(
     console.log(`B - es menor que 0: ${bIsLessThanZero}`);
     console.log("");
 }
-// =================================================== //

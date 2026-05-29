@@ -1,4 +1,4 @@
-import { evaluateFunction } from "../MathLogistic.js";
+import { evaluateFunction } from "../utils.js";
 
 function formatNumber(num) {
     return num.toLocaleString('en-US', {
@@ -7,11 +7,46 @@ function formatNumber(num) {
     });
 }
 
-// FUNCION PARA EL MÉTODO DE LA SECANTE //
-export function SecantMethod(
+function getCoefficients(expr) {
+    const str = expr.toString().replace(/\s+/g, '');
+
+    // Detectar grado máximo
+    const degrees = [...str.matchAll(/x\^(\d+)/g)].map(m => parseInt(m[1]));
+    const maxDegree = degrees.length ? Math.max(...degrees) : (str.includes('x') ? 1 : 0);
+
+    let coeffs = new Array(maxDegree + 1).fill(0);
+
+    // Separar términos
+    const terms = str.match(/[+-]?[^+-]+/g);
+
+    terms.forEach(term => {
+        let coef, degree;
+
+        if (term.includes('x^')) {
+            const [c, d] = term.split('x^');
+            coef = c === '' || c === '+' ? 1 : c === '-' ? -1 : parseFloat(c);
+            degree = parseInt(d);
+        } 
+        else if (term.includes('x')) {
+            const c = term.replace('x', '');
+            coef = c === '' || c === '+' ? 1 : c === '-' ? -1 : parseFloat(c);
+            degree = 1;
+        } 
+        else {
+            coef = parseFloat(term);
+            degree = 0;
+        }
+
+        coeffs[maxDegree - degree] = coef;
+    });
+
+    return coeffs;
+}
+
+// FUNCION PARA EL MÉTODO DE NEWTON HORNER //
+export function NewtonHornerMethod(
     mathFunction,
-    firstApproach,
-    secondApproach,
+    approach,
     iterations,
     epsilon,
     repeatOption
@@ -31,9 +66,9 @@ export function SecantMethod(
 
     const row = document.createElement("tr");
 
-    const headerRow = ["Iteración", "Aprox. anterior", "Aprox. posterior", "Nueva Aprox.", "f(Aprox. anterior)", "f(Aprox. posterior)", "Ec%"];
+    const headerRow = ["Iteración", "Aproximación", "f(Aproximación)", "f'(Aproximación)", "Nueva Aproximación", "Ec%"];
 
-    for (let i = 0; i <= 6; i++) {
+    for (let i = 0; i <= 5; i++) {
         const tableData = document.createElement("th");
         tableData.innerHTML = headerRow[i];
 
@@ -47,7 +82,7 @@ export function SecantMethod(
 
     table.appendChild(mainTable);
 
-    let method = "Secante";
+    let method = "Newton Raphson";
 
     // 1. Crear libro
     const workbook = new ExcelJS.Workbook();
@@ -70,7 +105,7 @@ export function SecantMethod(
         cell.fill = {
             type: "pattern",
             pattern: "solid",
-            fgColor: { argb: "AA000088" }
+            fgColor: { argb: "8800AA96" }
         };
 
         cell.alignment = {
@@ -87,18 +122,22 @@ export function SecantMethod(
         };
     });
 
+    
     let eachIteration = [];
     let eachApproach = [];
     let eachRelativeError = [];
-
+    
     let iteration = 1;
     let lastNewApproach = 0;
+    let lastDerivatedMathFunction = mathFunction;
     
-    while(true) {
-        const data = SecantOperation(
-            firstApproach,
-            secondApproach,
+    let derivatedMathFunction = math.derivative(String(lastDerivatedMathFunction).replace(/\s*=\s*0\s*$/, ''), 'x');
+
+    while (true) {
+        const data = NewtonHornerOperation(
+            approach,
             mathFunction,
+            derivatedMathFunction,
             epsilon,
             iteration,
             sheet,
@@ -106,13 +145,12 @@ export function SecantMethod(
         );
 
         eachIteration.push(iteration);
-        eachApproach.push(data.newApproach);
+        eachApproach.push(approach);
 
         eachRelativeError.push(data.relativeError);
 
-        firstApproach = secondApproach;
-        secondApproach = data.newApproach;
-        
+        approach = data.newApproach;
+
         lastNewApproach = data.newApproach;
 
         // Condición de parada por iteraciones
@@ -134,7 +172,7 @@ export function SecantMethod(
         iteration++;
     }
 
-    sheet.getColumn(7).numFmt = "0.00%";
+    sheet.getColumn(6).numFmt = "0.00%";
 
     let chartCanvas = document.getElementById('chart');
     // Destruir gráfico anterior si existe
@@ -150,12 +188,12 @@ export function SecantMethod(
         data: {
             labels: eachIteration,
             datasets: [{
-                label: 'Valor de Aproximación (x_n+1) por iteración',
+                label: 'Valor de Aproximación por iteración',
                 data: eachApproach,
-                borderColor: 'rgba(170, 0, 0, 0.8)',
-                backgroundColor: 'rgba(170, 0, 0, 0.2)',
-                pointBackgroundColor: 'rgba(170, 0, 0, 0.9)',
-                pointHoverBackgroundColor: 'rgb(200, 0, 0)',
+                borderColor: 'rgba(0, 170, 14, 0.53)',       // Línea principal (glow)
+                backgroundColor: 'rgba(0, 170, 26, 0.2)',     // Relleno suave debajo de la línea
+                pointBackgroundColor: 'rgba(14, 170, 0, 0.8)',// Puntos más sólidos
+                pointBorderColor: 'rgb(22, 121, 0)',           // Borde de los puntos, cercano al fondo
                 tension: 0.2
             }]
         },
@@ -178,7 +216,7 @@ export function SecantMethod(
                     }
                 },
                 y: { 
-                    title: { display: true, text: 'Valor de Aproximación (x_n+1)' },
+                    title: { display: true, text: 'Valor de Aproximación' },
                     ticks: {
                         callback: function(value) {
                             return value;
@@ -190,7 +228,7 @@ export function SecantMethod(
                 onComplete: async () => {
                     const chartImage = chartCanvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
 
-                    // Crear hoja para el gráfico
+                    // Crear hoja para el gráfico del error
                     let chartSheet = workbook.getWorksheet("Gráfico");
                     if (!chartSheet) {
                         chartSheet = workbook.addWorksheet("Gráfico");
@@ -209,6 +247,7 @@ export function SecantMethod(
                         tl: { col: 0, row: 0 }, // top-left
                         br: { col: 10, row: 20 } // bottom-right
                     });
+
 
                     // 6. Generar archivo
                     const buffer = await workbook.xlsx.writeBuffer();
@@ -262,12 +301,12 @@ export function SecantMethod(
         data: {
             labels: eachIteration,
             datasets: [{
-                label: 'Error Relativo',
+                label: 'Error Relativo por iteración',
                 data: eachRelativeError,
-                borderColor: 'rgba(170, 0, 0, 0.8)',
-                backgroundColor: 'rgba(170, 0, 0, 0.2)',
-                pointBackgroundColor: 'rgba(170, 0, 0, 0.9)',
-                pointHoverBackgroundColor: 'rgb(200, 0, 0)',
+                borderColor: 'rgba(0, 170, 14, 0.53)',       // Línea principal (glow)
+                backgroundColor: 'rgba(0, 170, 26, 0.2)',     // Relleno suave debajo de la línea
+                pointBackgroundColor: 'rgba(14, 170, 0, 0.8)',// Puntos más sólidos
+                pointBorderColor: 'rgb(22, 121, 0)',           // Borde de los puntos, cercano al fondo
                 tension: 0.2
             }]
         },
@@ -289,8 +328,8 @@ export function SecantMethod(
                         precision: 0 // Enteros para iteraciones
                     }
                 },
-                y: { 
-                    title: { display: true, text: 'Error Relativo por iteración' },
+                y: {
+                    title: { display: true, text: 'Error relativo' },
                     ticks: {
                         callback: function(value) {
                             return `${value*100}%`;
@@ -300,7 +339,7 @@ export function SecantMethod(
             },
             animation: {
                 onComplete: async () => {
-                    const chartImageError = chartCanvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
+                    const chartImageError = chartCanvasError.toDataURL("image/png").replace(/^data:image\/png;base64,/, "");
 
                     // Crear hoja para el gráfico
                     let chartSheetError = workbook.getWorksheet("Gráfico del Error");
@@ -321,7 +360,6 @@ export function SecantMethod(
                         tl: { col: 0, row: 0 }, // top-left
                         br: { col: 10, row: 20 } // bottom-right
                     });
-
 
                     // 6. Generar archivo
                     const buffer = await workbook.xlsx.writeBuffer();
@@ -360,44 +398,44 @@ export function SecantMethod(
         }
     });
 }
-// ==================================== //
+// =================================== //
 
-// FUNCION PARA REALIZAR EL MÉTODO DE LA SECANTE //
-function SecantOperation(
-    firstApproach,
-    secondApproach,
+
+// FUNCION PARA REALIZAR EL MÉTODO DE NEWTON HORNER //
+function NewtonHornerOperation(
+    approach,
     mathFunction,
+    derivatedMathFunction,
     epsilon,
     iteration,
     sheet,
     lastNewApproach
 ) {
-    const result = SecantCalculus(
-        firstApproach,
-        secondApproach,
+    const result = NewtonHornerCalculus(
+        approach,
         mathFunction,
+        derivatedMathFunction,
         epsilon,
         iteration
     );
 
-    SecantLog(
+    NewtonHornerLog(
         iteration,
-        firstApproach,
-        secondApproach,
+        approach,
         result.newApproach,
         mathFunction,
-        result.firstApproachEvaluation,
-        result.secondApproachEvaluation
+        derivatedMathFunction,
+        result.approachEvaluation,
+        result.derivatedApproachEvaluation
     );
 
     const latexString = `
         \\begin{array}{l l}
         \\text{Iteración:} & ${iteration} \\\\
-        x_0 & ${firstApproach} \\\\
-        x_1 & ${secondApproach} \\\\
-        f(x_0) & ${result.firstApproachEvaluation} \\\\
-        f(x_1) & ${result.secondApproachEvaluation} \\\\
-        x_2 & ${result.newApproach} \\\\
+        x_0 & ${approach} \\\\
+        f(x_0) & ${result.approachEvaluation} \\\\
+        f'(x_0) & ${result.derivatedApproachEvaluation} \\\\
+        Nuevo x_0 & ${result.newApproach} \\\\
         \\end{array}
     `;
 
@@ -421,22 +459,20 @@ function SecantOperation(
 
 
     let excelFormula;
-
-    if (iteration === 1) excelFormula = `=D${iteration+1}/D${iteration+1}`;
-    if (iteration > 1) excelFormula = `=ABS((D${iteration+1}-D${iteration})/D${iteration})`;
-
-    const newApproachExcelFormula = `=C${iteration+1} - (F${iteration+1} * (C${iteration+1} - B${iteration+1})) / (F${iteration+1} - E${iteration+1})`;
-
-    if (iteration === 1) sheet.addRow([iteration, firstApproach, secondApproach, { formula: newApproachExcelFormula }, result.firstApproachEvaluation, result.secondApproachEvaluation, { formula: excelFormula }]);
-    else sheet.addRow([iteration, { formula: `=C${iteration}` }, { formula: `=D${iteration}` }, { formula: newApproachExcelFormula }, result.firstApproachEvaluation, result.secondApproachEvaluation, { formula: excelFormula }]);
+    if (iteration === 1) excelFormula = `=E${iteration+1}/E${iteration+1}`;
+    if (iteration > 1) excelFormula = `=ABS((E${iteration+1}-E${iteration})/E${iteration})`
+    
+    if (iteration === 1) sheet.addRow([iteration, approach, result.approachEvaluation, result.derivatedApproachEvaluation, { formula: `=B${iteration+1}-(C${iteration+1}/D${iteration+1})` }, { formula: excelFormula }]);
+    else sheet.addRow([iteration, { formula: `=E${iteration}` }, result.approachEvaluation, result.derivatedApproachEvaluation, { formula: `=B${iteration+1}-(C${iteration+1}/D${iteration+1})` }, { formula: excelFormula }]);
 
 
     let relativeError = 0;
 
     if (iteration === 1) {
         relativeError = 1;
-    } else {
-        relativeError = math.abs((lastNewApproach - result.newApproach) / result.newApproach);
+    }
+    else if (iteration > 1) {
+        relativeError = math.abs(((result.newApproach - lastNewApproach) / lastNewApproach));
     }
 
 
@@ -446,15 +482,14 @@ function SecantOperation(
 
     const data = [
         iteration,
-        formatNumber(firstApproach),
-        formatNumber(secondApproach),
-        formatNumber(result.firstApproachEvaluation),
-        formatNumber(result.secondApproachEvaluation),
+        formatNumber(approach),
+        formatNumber(result.approachEvaluation),
+        formatNumber(result.derivatedApproachEvaluation),
         formatNumber(result.newApproach),
         `${formatNumber(relativeError * 100)}%`
     ];
 
-    for (let i = 0; i <= 6; i++) {
+    for (let i = 0; i <= 5; i++) {
         const tableData = document.createElement("td");
         tableData.innerHTML = data[i];
 
@@ -473,67 +508,121 @@ function SecantOperation(
 // ============================================== //
 
 
-// FUNCION PARA CALCULO DEL MÉTODO DE LA SECANTE //
-function SecantCalculus(
-    firstApproach,
-    secondApproach,
+// FUNCION PARA CALCULO DEL MÉTODO DE NEWTON HORNER //
+function NewtonHornerCalculus(
+    approach,
     mathFunction,
+    derivatedMathFunction,
     epsilon,
     iteration
 ) {
+    // División sintética
+    let mathFunctionFinalResult = 0;
+    let syntheticResult = 0;
+    let term = 0;
+
+    let mathFunctionTerms = getCoefficients(mathFunction);
+    let derivatedMathFunctionTerms = getCoefficients(derivatedMathFunction);
+
+
+    console.log("División Sintética de la Función");
+    for (let i = 0; i < mathFunctionTerms.length; i++) {
+        term = mathFunctionTerms[i];
+        console.log(mathFunctionTerms[i])
+
+        term = syntheticResult + mathFunctionTerms[i];
+        console.log("Termino sumado: " + term)
+
+        if (i !== mathFunctionTerms.length - 1) {
+            syntheticResult = approach * term;
+            console.log("Resultado sintético: " + syntheticResult)
+        }
+
+        if (i === mathFunctionTerms.length - 1) {
+            mathFunctionFinalResult = term;
+        }
+    }
+
+    console.log(mathFunctionFinalResult);
+
+
+    // División sintética
+    let derivatedMathFunctionFinalResult = 0;
+    syntheticResult = 0;
+    term = 0;
+
+
+    console.log("División Sintética de la derivada de la Función");
+    for (let i = 0; i < derivatedMathFunctionTerms.length; i++) {
+        term = derivatedMathFunctionTerms[i];
+        console.log(derivatedMathFunctionTerms[i])
+
+        term = syntheticResult + derivatedMathFunctionTerms[i];
+        console.log("Termino sumado: " + term)
+
+        if (i !== derivatedMathFunctionTerms.length - 1) {
+            syntheticResult = approach * term;
+            console.log("Resultado sintético: " + syntheticResult)
+        }
+
+        if (i === derivatedMathFunctionTerms.length - 1) {
+            derivatedMathFunctionFinalResult = term;
+        }
+    }
+
+    console.log(derivatedMathFunctionFinalResult);
+
+    
     let iterate = true;
+    let { result: approachEvaluation } = evaluateFunction(mathFunction, approach);
 
-    // x_0 --- x_n-1
-    let { result: firstApproachEvaluation } = evaluateFunction(mathFunction, firstApproach);
+    let { result: derivatedApproachEvaluation } = evaluateFunction(derivatedMathFunction, approach);
 
-    // x_1 --- x_n
-    let { result: secondApproachEvaluation } = evaluateFunction(mathFunction, secondApproach)
+    let newApproach = approach - mathFunctionFinalResult / derivatedMathFunctionFinalResult;
 
-    // x_2 --- x_n+1
-    let newApproach = secondApproach - secondApproachEvaluation * (secondApproach - firstApproach) / (secondApproachEvaluation - firstApproachEvaluation);
-
-
-    if (firstApproachEvaluation === 0 || secondApproachEvaluation === 0) {
+    if (approachEvaluation === 0) {
         alert(`Se encontró la raíz exacta en la iteración ${iteration}...`);
         iterate = false;
     }
-    else if (Math.abs(newApproach - secondApproach) <= epsilon) {
-        alert(`El valor de la raíz cumple con la precisión deseada en la iteración ${iteration}...`);
+    else if (Math.abs(approachEvaluation) <= epsilon) {
+        alert(`El valor de la raíz "${approach}" cumple con la precisión deseada en la iteración ${iteration}...`);
+        iterate = false;
+    }
+    else if (Math.abs(newApproach - approach) <= epsilon) {
+        alert(`Convergencia alcanzada en la iteración ${iteration}`);
         iterate = false;
     }
 
     return {
         newApproach,
-        firstApproachEvaluation,
-        secondApproachEvaluation,
+        approachEvaluation,
+        derivatedApproachEvaluation,
         iterate
     }
 }
 // ============================================== //
 
-// FUNCION PARA IMPRIMIR DATOS DEL MÉTODO DE LA SECANTE //
-function SecantLog(
+// FUNCION PARA IMPRIMIR DATOS DEL MÉTODO DE NEWTON HORNER //
+function NewtonHornerLog(
     iteration,
-    firstApproach,
-    secondApproach,
+    approach,
     newApproach,
     mathFunction,
-    firstApproachEvaluation,
-    secondApproachEvaluation
+    derivatedMathFunction,
+    approachEvaluation,
+    derivatedApproachEvaluation
 ) {
     console.log(`Iteración: ${iteration}`);
-    console.log(`Primera Aproximación (x_0): ${firstApproach}`);
-    console.log(`Segunda Aproximación (x_1): ${secondApproach}`);
-    console.log(`Nueva Aproximación (x_2): ${newApproach}`);
+    console.log(`Aproximación Inicial: ${approach}`);
+    console.log(`Nueva Aproximación: ${newApproach}`);
 
     console.log("");
 
-    console.log("Fórmula: x_1 - (f(x_1) * (x_1 - x_0)) / (f(x_1) - f(x_0))");
-    console.log(`Cálculo de la aproximación: ${secondApproach} - (${secondApproachEvaluation} * (${secondApproach} - ${firstApproach})) / (${secondApproachEvaluation} - ${firstApproachEvaluation})`);
+    console.log("Fórmula: xo - f(xo) / f'(xo))");
+    console.log(`Cálculo de la aproximación: ${approach} - ${approachEvaluation} / ${derivatedApproachEvaluation}`);
 
     console.log("");
-    console.log(`Primera Aproximación - evaluación: f(x) = ${mathFunction} // f(x) = ${firstApproachEvaluation}`);
-    console.log(`Segunda Aproximación - evaluación: f(x) = ${mathFunction} // f(x) = ${secondApproachEvaluation}`);
+    console.log(`Aproximación - evaluación: f(x) = ${mathFunction} // f(x) = ${approachEvaluation}`);
+    console.log(`Derivada - evaluación: f(x) = ${derivatedMathFunction} // f(x) = ${derivatedApproachEvaluation}`);
     console.log("");
 }
-// ===================================================== //
